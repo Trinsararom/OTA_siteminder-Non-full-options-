@@ -1,21 +1,22 @@
-import pandas as pd
-import streamlit as st
-import numpy as np
-from datetime import datetime
+# import library
+import pandas as pd #data manipulate
+import streamlit as st #web abb (Dashboard (DB))
+import numpy as np # function (math,arrays)
+from datetime import datetime # handle with time
 import datetime
-import altair as alt
-from openpyxl import load_workbook
-import matplotlib.pyplot as plt
-import seaborn as sns
-import plotly.express as px
-import plotly.graph_objs as go
-import re
-import seaborn as sns
-import warnings
-import calendar
-warnings.filterwarnings('ignore')
+import altair as alt # visualized (DB)
+from openpyxl import load_workbook # excel
+import matplotlib.pyplot as plt # visualized
+import seaborn as sns # visualized
+import plotly.express as px # ***visualized
+import plotly.graph_objs as go # visualized
+import re # set of strings that matches
+import seaborn as sns # visualized
+import warnings  
+warnings.filterwarnings('ignore') # ignore warning
+import calendar #datetime
 
-
+# text layout
 st.set_page_config(
     page_title="Siteminder OTA",
     layout = 'wide',
@@ -23,29 +24,31 @@ st.set_page_config(
 st.markdown('# AtMind Group')
 st.title('Online Travel Agent')
 
-
+# choose choose a property to get started
 hotel_select = st.selectbox("Please choose a property to get started", ["THE GRASS", "ASTER",'Amber PTY','ALTERA','ARDEN','AMBER 85','ARBOUR'])
+# Upload files 
 st.markdown('**Please Upload CSV Files**')
 uploaded_files = st.file_uploader("Choose a CSV file", type='CSV', accept_multiple_files=True)
 if uploaded_files:
-    all= []
+    all= [] # handle with multifiles
     for uploaded_file in uploaded_files:
         try:
             for uploaded_file in uploaded_files:
-                df = pd.read_csv(uploaded_file, thousands=',')
+                df = pd.read_csv(uploaded_file, thousands=',') 
                 all.append(df)
         except Exception as e:
             pass
     if all:
-            all = pd.concat(all)
+            all = pd.concat(all) # concat when multifiles
 
             def clean_room_type(room_type):
                 if ' X '  in room_type:
-                    room_type = 'MIXED ROOM'
+                    room_type = 'MIXED ROOM' #' 1 X deluxe,1 X two bedrooms ' convert to 'MIXED ROOM'
                 return room_type
-
+            # mapping roomtypes
             if hotel_select == "THE GRASS":
                 def convert_room_type(room_type):
+                    # if string is 'CITY VIEW ONE BEDROOM SUITE NONREFUND convert to ONE GRASS SUITE CITY VIEW'
                     if re.search(r'\bCITY VIEW ONE BEDROOM SUITE\b|\bONE GRASS SUITE CITY VIEW ROOM\b', room_type):
                         return 'ONE GRASS SUITE CITY VIEW'
                     elif re.search(r'\bห้องสวีทแบบสองห้องนอน\b|\bTWO-BEDROOM SUITE\b|\bBEDROOM SUITE\b|\bTWO GRASS SUITE ROOM\b|\bTWO BEDROOM SUITE\b|\bTWO GRASS SUITE\b|TWO', room_type):
@@ -56,6 +59,7 @@ if uploaded_files:
                         return 'MIXED'
                     else:
                         return 'UNKNOWN ROOM TYPE'
+                # discount adr
                 def apply_discount(channel, adr):
                     if channel == 'Booking.com':
                         return adr * 0.82
@@ -63,6 +67,7 @@ if uploaded_files:
                         return adr * 0.83
                     else:
                         return adr
+                # discount abf 
                 def calculate_adr_per_rn_abf(row):
                     if row['RO/ABF'] == 'ABF':
                         return row['ADR'] - 260
@@ -268,6 +273,7 @@ if uploaded_files:
                         return row['ADR'] - 300
                     else:
                         return row['ADR']
+            # To find NRF or Flex
             def convert_RF(room_type):
                 if re.search(r'\bNON REFUNDABLE\b|\bไม่สามารถคืนเงินจอง\b|\bNON REFUND\b|\bNON-REFUNDABLE\b|\bNRF\b', room_type):
                     return 'NRF'
@@ -277,7 +283,7 @@ if uploaded_files:
                     return 'UNKNOWN'
                 else:
                     return 'Flexible'
-
+            # To find RO or ABF
             def convert_ABF(room_type):
                 if re.search(r'\bBREAKFAST\b|\bWITH BREAKFAST\b|\bBREAKFAST INCLUDED\b', room_type):
                     return 'ABF'
@@ -289,6 +295,7 @@ if uploaded_files:
                     return 'RO'
                 else:
                     return 'RO'
+            # cleaning data
             def perform(all): 
                 all1 = all[['Booking reference'
                             ,'Guest names'
@@ -297,17 +304,17 @@ if uploaded_files:
                             ,'Channel'
                             ,'Room'
                             ,'Booked-on date'
-                            ,'Total price']]
-                all1 = all1.dropna()
+                            ,'Total price']] # focus on columns (Col) that we choose
+                all1 = all1.dropna()  # drop empty values
 
-                all1["Check-in"] = pd.to_datetime(all1["Check-in"])
-                all1['Booked-on date'] = pd.to_datetime(all1['Booked-on date'])
-                all1['Booked'] = all1['Booked-on date'].dt.strftime('%m/%d/%Y')
+                all1["Check-in"] = pd.to_datetime(all1["Check-in"]) # astype to datetime
+                all1['Booked-on date'] = pd.to_datetime(all1['Booked-on date']) 
+                all1['Booked'] = all1['Booked-on date'].dt.strftime('%m/%d/%Y') # extract just mm/dd/yyyy ( sting (str) type)
                 all1['Booked'] = pd.to_datetime(all1['Booked'])
                 all1["Check-out"] = pd.to_datetime(all1["Check-out"])
-                all1["Length of stay"] = (all1["Check-out"] - all1["Check-in"]).dt.days
-                all1["Lead time"] = (all1["Check-in"] - all1["Booked"]).dt.days
-                LT1 = [-1, 0, 1, 2, 3, 4, 5, 6, 7,8, 14, 30, 90, 120]
+                all1["Length of stay"] = (all1["Check-out"] - all1["Check-in"]).dt.days # cal LOS
+                all1["Lead time"] = (all1["Check-in"] - all1["Booked"]).dt.days # cal LT
+                LT1 = [-1, 0, 1, 2, 3, 4, 5, 6, 7,8, 14, 30, 90, 120] #grouping data
                 LT2 = ['-one', 'zero', 'one', 'two', 'three', 'four', 'five', 'six','seven', '8-14', '14-30', '31-90', '90-120', '120+']
                 LT11 = [-1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30,31,90, 120, float('inf')]
                 LT22 = ['.-1.', '.0.', '.1.', '.2.', '.3.', '.4.', '.5.', '.6.', '.7.', '.8.', '.9.', '.10.', '.11.', '.12.', '.13.', '.14.', '.15.', '.16.', '.17.', '.18.', '.19.', '.20.', '.21.', '.22.', '23.', '.24.', '25.', '.26.', '.27.', '.28.', '.29.', '.30.', '31-90.', '91-120', '120.+']
@@ -317,27 +324,19 @@ if uploaded_files:
                 all1['Lead time range1'] = pd.cut(all1['Lead time'], bins=LT11, labels=LT22, right=False)
                 all1['LOS range'] = pd.cut(all1['Length of stay'], bins=value_ranges1 + [float('inf')], labels=labels1, right=False)
 
-                all1['Room'] = all1['Room'].str.upper()
-                all1['Booking reference'] = all1['Booking reference'].astype('str')
-                all1['Total price'] = all['Total price'].str.strip('THB')
-                all1['Total price'] = all1['Total price'].astype('float64')
-
-                all1['Quantity'] = all1['Room'].str.extract('^(\d+)', expand=False).astype(int)
-                #all1['Room Type'] = all1['Room'].apply(lambda x: convert_room_type(x))
-                #all1['Room Type'] = all1['Room'].str.replace('^DELUXE \(DOUBLE OR TWIN\) ROOM ONLY$', 'DELUXE TWIN')
-                all1['Room Type'] = all1['Room'].str.replace('-.*', '', regex=True)
-                all1['Room Type'] = all1['Room Type'].apply(lambda x: re.sub(r'^\d+\sX\s', '', x))
-                all1['Room Type'] = all1['Room Type'].apply(clean_room_type)
+                all1['Room'] = all1['Room'].str.upper() #convert to uppercase
+                all1['Booking reference'] = all1['Booking reference'].astype('str') # astype (datatype)
+                all1['Total price'] = all['Total price'].str.strip('THB') # 'THB 1500' to '1500'
+                all1['Total price'] = all1['Total price'].astype('float64') # astype
+                all1['Quantity'] = all1['Room'].str.extract('^(\d+)', expand=False).astype(int) # {'Room':'1 X deluxe'} to {'Room':'deluxe','Quantity':1}
+                all1['Room Type'] = all1['Room'].str.replace('-.*', '', regex=True) # '3 X DElUXE-NRF' to '3 X DELUXE'
+                all1['Room Type'] = all1['Room Type'].apply(lambda x: re.sub(r'^\d+\sX\s', '', x)) #'3 X DElUXE' to 'DELUXE'
+                all1['Room Type'] = all1['Room Type'].apply(clean_room_type) #apply with func
                 all1['Room Type'] = all1['Room Type'].apply(lambda x: convert_room_type(x))
                 all1['F/NRF'] = all1['Room'].apply(lambda x: convert_RF(x))
                 all1['RO/ABF'] = all1['Room'].apply(lambda x: convert_ABF(x))
-                #all1['Room Type'] = all1['Room Type'].str.replace('(NRF)', '').apply(lambda x: x.replace('()', ''))
-                #all1['Room Type'] = all1['Room Type'].str.replace('WITH BREAKFAST', '')
-                #all1['Room Type'] = all1['Room Type'].str.replace('ROOM ONLY', '')
-                #all1['Room Type'] = all1['Room Type'].replace('', 'UNKNOWN ROOM')
-                #all1['Room Type'] = all1['Room Type'].str.strip()
-                all1['ADR'] = (all1['Total price']/all1['Length of stay'])/all1['Quantity']
-                all1['ADR'] = all1.apply(lambda row: apply_discount(row['Channel'], row['ADR']), axis=1)
+                all1['ADR'] = (all1['Total price']/all1['Length of stay'])/all1['Quantity'] # cal ADR
+                all1['ADR'] = all1.apply(lambda row: apply_discount(row['Channel'], row['ADR']), axis=1) #apply function by row
                 all1['RN'] = all1['Length of stay']*all1['Quantity']
                 all1['ADR'] = all1.apply(calculate_adr_per_rn_abf, axis=1)
 
@@ -361,25 +360,26 @@ if uploaded_files:
                             ,'Lead time range1'
                             ,'LOS range']]
                 return all2
-
-            all2 =  perform(all)
-            channels = all2['Channel'].unique()
-            room_type_options = all2['Room Type'].unique().tolist()
-
+            
+            all2 =  perform(all) # perform data
+            channels = all2['Channel'].unique() # To find unique Channel
+            room_type_options = all2['Room Type'].unique().tolist() # To find unique Roomtype
+            
+            # to count booking by Channel, Room type
             counts = all2[['Channel', 'Room Type']].groupby(['Channel', 'Room Type']).size().reset_index(name='Count')
             total_count = counts['Count'].sum()
-            fig = px.treemap(counts, path=['Channel', 'Room Type'], values='Count', color='Count',color_continuous_scale='YlOrRd')
+            fig = px.treemap(counts, path=['Channel', 'Room Type'], values='Count', color='Count',color_continuous_scale='YlOrRd') # treemap
 
 
-            #start_date = st.sidebar.date_input('Start date', pd.to_datetime(all2['Check-in']).min())
-            #end_date = st.sidebar.date_input('End date', pd.to_datetime(all2['Check-out']).max())
             channels = all2['Channel'].unique()
             room_type_options =   all2['Room Type'].unique().tolist()
-            selected_channels = st.sidebar.multiselect('Select channels', channels, default=channels)
-            selected_room_types = st.sidebar.multiselect('Select room types', room_type_options, default=room_type_options)
-
+            selected_channels = st.sidebar.multiselect('Select channels', channels, default=channels) # multi select (sidebar)
+            selected_room_types = st.sidebar.multiselect('Select room types', room_type_options, default=room_type_options)  # multi select (sidebar)
+            
+            #tab
             tab1, tab_stay = st.tabs(['**Book on date**','**Stay on date**'])
             with tab1:
+                #select channel and roomtype
                 if selected_channels:
                     filtered_df = all2[all2['Channel'].isin(selected_channels)]
                     filtered_df1 = all2[all2['Channel'].isin(selected_channels)]
@@ -393,6 +393,7 @@ if uploaded_files:
                                 filtered_df = all2[all2['Room Type'].isin(selected_room_types)]
                                 filtered_df1 = all2[all2['Room Type'].isin(selected_room_types)]
                 else:
+                    # if do not select , show all
                     filtered_df = all2
                     filtered_df1 = all2
                 # filtered_df by date
@@ -403,6 +404,8 @@ if uploaded_files:
                     end_date = st.date_input('Select an end date', value=filtered_df['Booked'].max())
                 filtered_df = filtered_df[(filtered_df['Booked'] >= pd.Timestamp(start_date)) & (filtered_df['Booked'] <= pd.Timestamp(end_date))]
                 filtered_df1 = filtered_df1[(filtered_df1['Booked'] >= pd.Timestamp(start_date)) & (filtered_df1['Booked'] <= pd.Timestamp(end_date))]
+                
+                # filtered_df by variable
                 col1 , col2 ,col3 = st.columns(3)
                 with col2:
                     filter_LT = st.checkbox('Filter by LT ')
@@ -441,7 +444,7 @@ if uploaded_files:
                     with tab1:
                         col0,col00,col1, col2, col4 = st.columns(5)
                         filtered_df['ADR discount'] = filtered_df["ADR"]*filtered_df["Length of stay"]*filtered_df["Quantity"]
-                        col0.metric('**Revenue**',f'{round(filtered_df["ADR discount"].sum(),0)}')
+                        col0.metric('**Revenue**',f'{round(filtered_df["ADR discount"].sum(),0)}') # total Rev
                         min_booked = filtered_df["Booked"].min()
                         max_booked = filtered_df["Booked"].max()
                         per_period = (max_booked - min_booked).days
@@ -455,12 +458,14 @@ if uploaded_files:
                         col1.metric("A.LT", f'{round(filtered_df["Lead time"].median(),1)}')
                         col2.metric("A.LOS", f'{round(filtered_df["Length of stay"].median(),1)}')
                     with tab3:
-                        st.write(filtered_df.describe())
+                        st.write(filtered_df.describe()) #stat
                     with tab4:
                         st.write(filtered_df)
                     with tab5:
                         tab11, tab12, tab13, tab14 = st.tabs(['A.LT','A.LOS','A.RN','ADR by month'])
+                        # bar table
                         with tab14:
+                            # adr by month
                             month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
                             mean_adr_by_month = filtered_df.groupby(['Room Type', filtered_df['Booked'].dt.month_name()])['ADR'].mean().reset_index()
                             mean_adr_by_month['Booked'] = pd.Categorical(mean_adr_by_month['Booked'], categories=month_order)
@@ -470,6 +475,7 @@ if uploaded_files:
                             bar_chart.update_traces(texttemplate='%{text:.2f}', textposition='auto')
                             st.plotly_chart(bar_chart, use_container_width=True)
                         with tab11:
+                            # LT by month
                             month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
                             mean_adr_by_month = filtered_df.groupby(['Room Type', filtered_df['Booked'].dt.month_name()])['Lead time'].mean().reset_index()
                             mean_adr_by_month['Booked'] = pd.Categorical(mean_adr_by_month['Booked'], categories=month_order)
@@ -479,6 +485,7 @@ if uploaded_files:
                             bar_chart.update_traces(texttemplate='%{text:.2f}', textposition='auto')
                             st.plotly_chart(bar_chart, use_container_width=True)
                         with tab12:
+                            # LOS by month
                             month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
                             mean_adr_by_month = filtered_df.groupby(['Room Type', filtered_df['Booked'].dt.month_name()])['Length of stay'].mean().reset_index()
                             mean_adr_by_month['Booked'] = pd.Categorical(mean_adr_by_month['Booked'], categories=month_order)
@@ -488,6 +495,7 @@ if uploaded_files:
                             bar_chart.update_traces(texttemplate='%{text:.2f}', textposition='auto')
                             st.plotly_chart(bar_chart, use_container_width=True)
                         with tab13:
+                            # RN by month
                             month_order = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
                             mean_adr_by_month = filtered_df.groupby(['Room Type', filtered_df['Booked'].dt.month_name()])['RN'].mean().reset_index()
                             mean_adr_by_month['Booked'] = pd.Categorical(mean_adr_by_month['Booked'], categories=month_order)
@@ -497,29 +505,34 @@ if uploaded_files:
                             bar_chart.update_traces(texttemplate='%{text:.2f}', textposition='auto')
                             st.plotly_chart(bar_chart, use_container_width=True)
                     with tab6:
+                        # treemap RN by ch,rt
                         counts = filtered_df[['Channel', 'Room Type','RN']].groupby(['Channel', 'Room Type']).sum().reset_index()
                         fig = px.treemap(counts, path=['Channel', 'Room Type','RN'], values='RN', color='RN',color_continuous_scale='YlOrRd')
                         st.plotly_chart(fig, use_container_width=True)
                     with tab7:
+                         # treemap Rev by ch,rt
                         counts = filtered_df[['Channel', 'Room Type','ADR discount']].groupby(['Channel', 'Room Type']).sum().reset_index()
                         fig = px.treemap(counts, path=['Channel', 'Room Type','ADR discount'], values='ADR discount', color='ADR discount',color_continuous_scale='YlOrRd')
                         st.plotly_chart(fig, use_container_width=True)
                     with tab0:
+                        # treemap count ch by ch,rt
                         counts = all2[['Channel', 'Room Type']].groupby(['Channel', 'Room Type']).size().reset_index(name='Count')
                         total_count = counts['Count'].sum()
                         fig = px.treemap(counts, path=['Channel', 'Room Type'], values='Count', color='Count',color_continuous_scale='YlOrRd')
                         st.plotly_chart(fig, use_container_width=True)
                     with tab8:
+                        # treemap F/NRF by ch,rt
                         counts = all2[['Channel','F/NRF']].groupby(['Channel', 'F/NRF']).size().reset_index(name='Count')
                         total_count = counts['Count'].sum()
                         fig = px.treemap(counts, path=['Channel', 'F/NRF'], values='Count', color='Count',color_continuous_scale='YlOrRd')
                         st.plotly_chart(fig, use_container_width=True)
                     with tab9:
+                        # treemap RO/ABF by ch,rt
                         counts = all2[['Channel','RO/ABF']].groupby(['Channel', 'RO/ABF']).size().reset_index(name='Count')
                         total_count = counts['Count'].sum()
                         fig = px.treemap(counts, path=['Channel', 'RO/ABF'], values='Count', color='Count',color_continuous_scale='YlOrRd')
                         st.plotly_chart(fig, use_container_width=True)
-    
+                    # ADR by Room type and channel (Booked), ADR by Room type and channel (Stay)
                     table = filtered_df.copy()
                     table['Stay'] = table.apply(lambda row: pd.date_range(row['Check-in'], row['Check-out']- pd.Timedelta(days=1)), axis=1)
                     table = table.explode('Stay').reset_index(drop=True)
@@ -600,7 +613,7 @@ if uploaded_files:
                             result = result.drop(columns='Channel')
                             result = result.applymap(lambda x: int(x) if not pd.isna(x) else np.nan)
                             st.write(result, use_container_width=True)
-                            
+                    # generate color        
                     channels = filtered_df['Channel'].unique()
                     num_colors = len(channels)
                     existing_colors = ['#636EFA', '#EF553B', '#00CC96', '#AB63FA', '#FFA15A', '#19D3F3', '#FF6692', '#B6E880', '#FF97FF', '#6392FF']
@@ -1137,7 +1150,7 @@ if uploaded_files:
                     else:
                             st.write('---')
 
-                    if st.button('Portion_LT'):
+                    if st.button('Portion_LT'): # portion (bar)
                             los_counts = filtered_df1['Lead time range'].value_counts().reset_index()
                             custom_order = ['-one', 'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', '8-14', '14-30', '31-90', '90-120', '120+']
                             los_counts['sorting_order'] = pd.Categorical(los_counts['Lead time range'], categories=custom_order, ordered=True)
